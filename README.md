@@ -1,36 +1,136 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Word Anchor
+
+A vocabulary flashcard app built with **Next.js 16**, **Prisma 7**, and **Neon Postgres**. Save words with optional details, review them as animated flashcards, and manage your collection behind a secure session-based auth flow.
+
+---
+
+## Tech Stack
+
+| Layer      | Technology                                     |
+| ---------- | ---------------------------------------------- |
+| Framework  | Next.js 16 (App Router)                        |
+| Language   | TypeScript                                     |
+| Styling    | Tailwind CSS v4 + shadcn/ui                    |
+| Animation  | Framer Motion                                  |
+| ORM        | Prisma 7 (driver-adapter mode, no Rust engine) |
+| Database   | Neon Postgres (serverless)                     |
+| DB Adapter | `@prisma/adapter-neon`                         |
+| Auth       | JWT sessions via `jose` + HTTP-only cookies    |
+| Password   | `bcryptjs`                                     |
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Set up environment variables
+
+Create a `.env` file in the project root:
+
+```env
+# Pooled connection — used by Prisma Client at runtime
+DATABASE_URL='postgresql://<user>:<password>@<pooler-host>/<db>?sslmode=require&pgbouncer=true&connection_limit=1'
+
+# Direct (non-pooled) connection — used by Prisma CLI for migrations / db push
+DIRECT_DATABASE_URL='postgresql://<user>:<password>@<direct-host>/<db>?sslmode=require'
+
+# Secret for signing JWT session tokens (generate with: openssl rand -hex 32)
+SESSION_SECRET='your-secret-here'
+```
+
+> If you are using [Neon](https://neon.tech), the pooler host ends in `-pooler` and the direct host does not.
+
+### 3. Push the schema to the database
+
+```bash
+npx prisma db push
+```
+
+This creates the `users` and `words` tables and generates the Prisma Client.
+
+### 4. Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project Structure
 
-## Learn More
+```
+app/
+  (auth)/           # Login & signup pages
+  (main)/           # Main app (home / flashcard view)
+  actions/
+    auth.ts         # signup / login / logout server actions
+    words.ts        # addWord / getWords server actions
+  lib/
+    definitions.ts  # Zod schemas & TypeScript types
+    session.ts      # JWT session helpers
+components/
+  AddWordModal.tsx  # Floating + button → modal to add a word
+  FlashCard.tsx     # Swiper-based flashcard deck
+  Meteors.tsx       # Animated meteor background
+  navBar.tsx        # Responsive navigation bar
+lib/
+  prisma.ts         # PrismaClient singleton (with PrismaNeon adapter)
+  utils.ts          # Tailwind class merge helper
+prisma/
+  schema.prisma     # User + Word models
+prisma.config.ts    # Prisma CLI datasource config (required by Prisma v7)
+proxy.ts            # Middleware: redirect unauthenticated users to /login
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Database Schema
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```prisma
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  words     Word[]
+}
 
-## Deploy on Vercel
+model Word {
+  id        Int      @id @default(autoincrement())
+  word      String
+  details   String?
+  userId    Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Useful Commands
+
+| Command               | Description                               |
+| --------------------- | ----------------------------------------- |
+| `npm run dev`         | Start development server                  |
+| `npm run build`       | Production build                          |
+| `npm run lint`        | Run ESLint                                |
+| `npx prisma db push`  | Sync schema to database & generate client |
+| `npx prisma generate` | Regenerate Prisma Client only             |
+| `npx prisma studio`   | Open Prisma Studio (database GUI)         |
+
+---
+
+## Notes on Prisma v7
+
+Prisma 7 **removed the Rust query engine** and requires a driver adapter. This project uses `PrismaNeon` from `@prisma/adapter-neon`. Key differences from older Prisma versions:
+
+- `url` / `directUrl` are **no longer in `schema.prisma`** — they live in `prisma.config.ts`
+- The `PrismaClient` constructor **must receive an `adapter`** instance
+- `prisma.config.ts` is required for all CLI commands (`db push`, `migrate`, `generate`, etc.)
