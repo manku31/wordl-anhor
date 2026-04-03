@@ -1,6 +1,7 @@
 import NavBar from "@/components/navBar";
 import AddWordModal from "@/components/AddWordModal";
 import { Meteors } from "@/components/Meteors";
+import { redirect } from "next/navigation";
 import { getSession } from "@/app/lib/session";
 
 export default async function MainLayout({
@@ -9,6 +10,7 @@ export default async function MainLayout({
   children: React.ReactNode;
 }) {
   const session = await getSession();
+  if (!session) redirect("/login");
 
   return (
     <>

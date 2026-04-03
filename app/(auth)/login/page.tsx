@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useActionState } from "react";
 import Link from "next/link";
 import { AnchorIcon, EyeIcon, EyeOffIcon } from "lucide-react";
+import { login } from "@/app/actions/auth";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [state, formAction, isPending] = useActionState(login, undefined);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-950 px-4 py-12">
@@ -31,7 +34,7 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-8 shadow-2xl backdrop-blur-sm">
-          <form className="space-y-5">
+          <form action={formAction} className="space-y-5">
             {/* Username */}
             <div className="space-y-1.5">
               <label
@@ -48,6 +51,11 @@ export default function LoginPage() {
                 placeholder="your_username"
                 className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3.5 py-2.5 text-sm text-white placeholder:text-neutral-500 outline-none transition focus:border-neutral-500 focus:ring-2 focus:ring-neutral-500/20"
               />
+              {state?.errors?.username && (
+                <p className="text-xs text-red-400">
+                  {state.errors.username[0]}
+                </p>
+              )}
             </div>
 
             {/* Password */}
@@ -80,14 +88,25 @@ export default function LoginPage() {
                   )}
                 </button>
               </div>
+              {state?.errors?.password && (
+                <p className="text-xs text-red-400">
+                  {state.errors.password[0]}
+                </p>
+              )}
             </div>
+
+            {/* Global error */}
+            {state?.message && (
+              <p className="text-xs text-red-400">{state.message}</p>
+            )}
 
             {/* Submit */}
             <button
               type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100"
+              disabled={isPending}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100 disabled:opacity-60"
             >
-              Sign in
+              {isPending ? "Signing in…" : "Sign in"}
             </button>
           </form>
         </div>
