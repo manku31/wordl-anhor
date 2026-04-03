@@ -12,22 +12,31 @@ datasource db {
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model User {
-  id        Int      @id @default(autoincrement())
+  userId        Int      @id @default(autoincrement())
   username  String   @unique
+  email     String   @unique
   password  String
+  isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
   words     Word[]
 
   @@map("users")
 }
 
 model Word {
-  id        Int      @id @default(autoincrement())
+  wordId        Int      @id @default(autoincrement())
   word      String
   details   String?
   userId    Int      @map("user_id")
+  meaning   String?
+  isFavorite Boolean  @default(false) @map("is_favorite")
+  isMastered Boolean  @default(false) @map("is_mastered")
+  isDeleted  Boolean  @default(false) @map("is_deleted")
+  example   String?
   createdAt DateTime @default(now()) @map("created_at")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@map("words")
 }

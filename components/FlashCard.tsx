@@ -34,6 +34,8 @@ export default function FlashCard() {
   const nextCardRef = useRef<{ card: WordEntry; paletteIdx: number } | null>(
     null,
   );
+  // Index to restore after the mastered card is removed & Swiper remounts
+  const masteredTargetIdxRef = useRef(0);
 
   // Shuffle client-only to avoid SSR hydration mismatch
   useEffect(() => {
@@ -46,6 +48,13 @@ export default function FlashCard() {
   // Current visible card
   const currentCard =
     displayWords[activeRealIdx % Math.max(1, displayWords.length)];
+
+  // Stable palette: keyed off the card's position in the *shuffled* array so
+  // mastering a card never shifts any other card's color or illustration.
+  const getPaletteIdx = (card: WordEntry) => {
+    const i = shuffled.findIndex((w) => w.id === card.id);
+    return (i === -1 ? 0 : i) % CARD_PALETTE.length;
+  };
 
   // Global arrow-key navigation
   useEffect(() => {
@@ -77,14 +86,17 @@ export default function FlashCard() {
     const idx = displayWords.findIndex((w) => w.id === id);
     rippingCardRef.current = {
       card: currentCard,
-      paletteIdx: idx % CARD_PALETTE.length,
+      paletteIdx: getPaletteIdx(currentCard),
     };
-    // Capture the next card so it shows through the tear
-    const nextIdx = (idx + 1) % displayWords.length;
-    const nextCard = displayWords.length > 1 ? displayWords[nextIdx] : null;
+    // After removal the next card may shift position but its palette is stable.
+    const isLastCard = idx === displayWords.length - 1;
+    const targetIdx = isLastCard ? 0 : idx;
+    const nextRawIdx = (idx + 1) % displayWords.length;
+    const nextCard = displayWords.length > 1 ? displayWords[nextRawIdx] : null;
     nextCardRef.current = nextCard
-      ? { card: nextCard, paletteIdx: nextIdx % CARD_PALETTE.length }
+      ? { card: nextCard, paletteIdx: getPaletteIdx(nextCard) }
       : null;
+    masteredTargetIdxRef.current = targetIdx;
     setRippingId(id);
     // No slideNext here — let the rip play fully over the correct card
   };
@@ -97,7 +109,7 @@ export default function FlashCard() {
       }
       return null;
     });
-    setActiveRealIdx(0); // reset so Swiper starts at first remaining card
+    setActiveRealIdx(masteredTargetIdxRef.current);
     rippingCardRef.current = null;
     nextCardRef.current = null;
   };
@@ -131,6 +143,7 @@ export default function FlashCard() {
               grabCursor={true}
               loop={displayWords.length > 1}
               speed={650}
+              initialSlide={activeRealIdx}
               modules={[EffectCards]}
               onSwiper={(s) => {
                 swiperRef.current = s;
@@ -138,8 +151,9 @@ export default function FlashCard() {
               onRealIndexChange={(s) => setActiveRealIdx(s.realIndex)}
               className="h-full w-full"
             >
-              {displayWords.map((card, i) => {
-                const palette = CARD_PALETTE[i % CARD_PALETTE.length];
+              {displayWords.map((card) => {
+                const pIdx = getPaletteIdx(card);
+                const palette = CARD_PALETTE[pIdx];
                 return (
                   <SwiperSlide key={card.id} className="rounded-3xl shadow-2xl">
                     <WordCard
@@ -148,7 +162,7 @@ export default function FlashCard() {
                       example={card.example}
                       bg={palette.bg}
                       text={palette.text}
-                      illustrationIndex={i % 5}
+                      illustrationIndex={pIdx % 5}
                     />
                   </SwiperSlide>
                 );
@@ -240,7 +254,13 @@ export default function FlashCard() {
           {currentCard && (
             <div className="flex items-center gap-3">
               {/* Favorite */}
-              <div className="relative">
+              <div className="relative group">
+                {/* Tooltip */}
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-neutral-800 border border-neutral-700 px-2 py-0.5 text-xs text-neutral-300 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
+                  {favs.has(currentCard.id)
+                    ? "Remove from favourites"
+                    : "Add to favourites"}
+                </span>
                 <button
                   onClick={handleFav}
                   className={`h-9 w-9 flex items-center justify-center rounded-2xl border transition-colors ${
@@ -248,11 +268,6 @@ export default function FlashCard() {
                       ? "bg-amber-400/15 border-amber-400/40 text-amber-300"
                       : "bg-neutral-800 border-neutral-700 text-neutral-400 hover:text-amber-300 hover:bg-amber-400/10"
                   }`}
-                  title={
-                    favs.has(currentCard.id)
-                      ? "Remove from favorites"
-                      : "Add to favorites"
-                  }
                 >
                   <StarIcon
                     className="h-4 w-4"
@@ -279,20 +294,24 @@ export default function FlashCard() {
               </div>
 
               {/* Master */}
-              <button
-                onClick={handleMaster}
-                disabled={rippingId !== null}
-                className="h-9 w-9 flex items-center justify-center rounded-2xl bg-neutral-800 border border-neutral-700 text-neutral-400 hover:text-neutral-100 hover:bg-neutral-700 transition-colors disabled:opacity-40"
-                title="Mark as mastered — removes from deck"
-              >
-                <CheckCircle2Icon className="h-4 w-4" />
-              </button>
+              <div className="relative group">
+                {/* Tooltip */}
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-neutral-800 border border-neutral-700 px-2 py-0.5 text-xs text-neutral-300 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
+                  Mark as mastered — removes from deck
+                </span>
+                <button
+                  onClick={handleMaster}
+                  disabled={rippingId !== null}
+                  className="h-9 w-9 flex items-center justify-center rounded-2xl bg-neutral-800 border border-neutral-700 text-neutral-400 hover:text-neutral-100 hover:bg-neutral-700 transition-colors disabled:opacity-40"
+                >
+                  <CheckCircle2Icon className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           )}
 
           <p className="text-neutral-500 text-xs tracking-wide">
-            swipe or use ← → keys · {displayWords.length} card
-            {displayWords.length !== 1 ? "s" : ""} left
+            swipe to change card
           </p>
         </>
       )}

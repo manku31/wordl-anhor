@@ -109,6 +109,101 @@ const MOCK_WORDS: WordEntry[] = [
     illustration: 2,
     done: true,
   },
+  {
+    id: 12,
+    word: "Sanguine",
+    meaning: "Optimistic or positive, especially in a difficult situation.",
+    example:
+      "Despite the setbacks, she remained sanguine about the project's success.",
+    illustration: 3,
+    fav: true,
+  },
+  {
+    id: 13,
+    word: "Laconic",
+    meaning: "Using very few words; brief and concise in speech or expression.",
+    example:
+      "His laconic reply — 'Fine' — told her nothing about how he truly felt.",
+    illustration: 0,
+  },
+  {
+    id: 14,
+    word: "Ineffable",
+    meaning: "Too great or extreme to be expressed or described in words.",
+    example:
+      "Standing at the summit, she felt an ineffable sense of peace wash over her.",
+    illustration: 1,
+    fav: true,
+  },
+  {
+    id: 15,
+    word: "Ebullient",
+    meaning: "Cheerful and full of energy; overflowing with enthusiasm.",
+    example:
+      "The ebullient crowd erupted into cheers the moment the band took the stage.",
+    illustration: 4,
+    done: true,
+  },
+  {
+    id: 16,
+    word: "Recondite",
+    meaning: "Not known by many people; dealing with obscure subject matter.",
+    example:
+      "His recondite knowledge of medieval alchemy impressed even the professors.",
+    illustration: 2,
+  },
+  {
+    id: 17,
+    word: "Halcyon",
+    meaning:
+      "Denoting a period of time in the past that was idyllically happy and peaceful.",
+    example: "She often looked back on those halcyon summer days by the lake.",
+    illustration: 3,
+    fav: true,
+    done: true,
+  },
+  {
+    id: 18,
+    word: "Insouciant",
+    meaning: "Showing a casual lack of concern; carefree and nonchalant.",
+    example: "He strolled into the meeting late with an insouciant shrug.",
+    illustration: 0,
+  },
+  {
+    id: 19,
+    word: "Pulchritudinous",
+    meaning: "Having great physical beauty.",
+    example:
+      "The pulchritudinous landscape of the valley left every traveller speechless.",
+    illustration: 1,
+  },
+  {
+    id: 20,
+    word: "Capricious",
+    meaning: "Given to sudden and unaccountable changes of mood or behaviour.",
+    example:
+      "The capricious weather ruined their carefully planned outdoor wedding.",
+    illustration: 4,
+    fav: true,
+  },
+  {
+    id: 21,
+    word: "Loquacious",
+    meaning: "Tending to talk a great deal; garrulous.",
+    example:
+      "The loquacious tour guide barely paused for breath throughout the entire walk.",
+    illustration: 2,
+    done: true,
+  },
+  {
+    id: 22,
+    word: "Penumbra",
+    meaning:
+      "The partly shaded outer region of a shadow; by extension, an area of uncertainty.",
+    example:
+      "The scandal cast a penumbra of doubt over the entire administration.",
+    illustration: 3,
+  },
 ];
 
 export default MOCK_WORDS;

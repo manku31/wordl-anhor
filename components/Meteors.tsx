@@ -1,26 +1,35 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { cn } from "@/lib/utils"
+import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
 export interface MeteorsProps {
-  className?: string
-  children?: React.ReactNode
+  className?: string;
+  children?: React.ReactNode;
   /** Number of meteors */
-  count?: number
+  count?: number;
   /** Meteor angle in degrees (215 = diagonal down-left) */
-  angle?: number
+  angle?: number;
   /** Meteor color */
-  color?: string
+  color?: string;
   /** Tail gradient color */
-  tailColor?: string
+  tailColor?: string;
 }
 
 interface MeteorData {
-  id: number
-  left: number
-  delay: number
-  duration: number
+  id: number;
+  left: number;
+  delay: number;
+  duration: number;
+}
+
+interface StarData {
+  id: number;
+  top: number;
+  left: number;
+  size: number;
+  delay: number;
+  duration: number;
 }
 
 export function Meteors({
@@ -31,7 +40,8 @@ export function Meteors({
   color = "#64748b",
   tailColor = "#64748b",
 }: MeteorsProps) {
-  const [meteors, setMeteors] = useState<MeteorData[]>([])
+  const [meteors, setMeteors] = useState<MeteorData[]>([]);
+  const [stars, setStars] = useState<StarData[]>([]);
 
   // Generate meteor data on client only to avoid hydration mismatch
   useEffect(() => {
@@ -42,11 +52,23 @@ export function Meteors({
         delay: Math.random() * 5,
         duration: 3 + Math.random() * 7,
       })),
-    )
-  }, [count])
+    );
+    setStars(
+      Array.from({ length: 120 }, (_, i) => ({
+        id: i,
+        top: Math.random() * 100,
+        left: Math.random() * 100,
+        size: 0.5 + Math.random() * 1,
+        delay: Math.random() * 6,
+        duration: 2 + Math.random() * 4,
+      })),
+    );
+  }, [count]);
 
   return (
-    <div className={cn("fixed inset-0 overflow-hidden bg-neutral-950", className)}>
+    <div
+      className={cn("fixed inset-0 overflow-hidden bg-neutral-950", className)}
+    >
       {/* Keyframe animation - uses vmax for viewport scaling */}
       <style>{`
         @keyframes meteor-fall {
@@ -62,7 +84,27 @@ export function Meteors({
             opacity: 0;
           }
         }
+        @keyframes twinkle {
+          0%, 100% { opacity: 0.1; transform: scale(1); }
+          50% { opacity: 0.9; transform: scale(1.4); }
+        }
       `}</style>
+
+      {/* Stars */}
+      {stars.map((star) => (
+        <span
+          key={star.id}
+          className="absolute rounded-full bg-white"
+          style={{
+            top: `${star.top}%`,
+            left: `${star.left}%`,
+            width: `${star.size}px`,
+            height: `${star.size}px`,
+            animation: `twinkle ${star.duration}s ease-in-out infinite`,
+            animationDelay: `${star.delay}s`,
+          }}
+        />
+      ))}
 
       {/* Subtle gradient overlay */}
       <div
@@ -76,7 +118,7 @@ export function Meteors({
       />
 
       {/* Meteors */}
-      {meteors.map(meteor => (
+      {meteors.map((meteor) => (
         <span
           key={meteor.id}
           className="absolute h-0.5 w-0.5 rounded-full"
@@ -112,11 +154,13 @@ export function Meteors({
       />
 
       {/* Content layer */}
-      {children && <div className="relative z-10 h-full w-full">{children}</div>}
+      {children && (
+        <div className="relative z-10 h-full w-full">{children}</div>
+      )}
     </div>
-  )
+  );
 }
 
 export default function MeteorsDemo() {
-  return <Meteors />
+  return <Meteors />;
 }
