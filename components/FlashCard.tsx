@@ -8,8 +8,10 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css/effect-cards";
 import "swiper/css";
 import { CheckCircle2Icon, StarIcon } from "lucide-react";
+import { toast } from "sonner";
 import WordCard, { CARD_PALETTE } from "@/components/WordCard";
-import MOCK_WORDS, { type WordEntry } from "@/lib/mock-words";
+import type { WordRow } from "@/app/actions/words";
+import { toggleFavorite, toggleMastered } from "@/app/actions/words";
 
 // Jagged tear clip-paths (the split runs vertically down the middle ~50%)
 const LEFT_CLIP =
@@ -19,19 +21,23 @@ const RIGHT_CLIP =
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export default function FlashCard() {
-  const [shuffled, setShuffled] = useState(MOCK_WORDS);
-  const [favs, setFavs] = useState<Set<number>>(new Set());
-  const [mastered, setMastered] = useState<Set<number>>(new Set());
+export default function FlashCard({ words }: { words: WordRow[] }) {
+  const [shuffled, setShuffled] = useState(words);
+  const [favs, setFavs] = useState<Set<number>>(
+    () => new Set(words.filter((w) => w.isFavorite).map((w) => w.id)),
+  );
+  const [mastered, setMastered] = useState<Set<number>>(
+    () => new Set(words.filter((w) => w.isMastered).map((w) => w.id)),
+  );
   const [activeRealIdx, setActiveRealIdx] = useState(0);
   const [rippingId, setRippingId] = useState<number | null>(null);
   const [favAnimId, setFavAnimId] = useState<number | null>(null);
   const swiperRef = useRef<SwiperType | null>(null);
   // Store card data at the moment master is pressed so overlay renders correctly
-  const rippingCardRef = useRef<{ card: WordEntry; paletteIdx: number } | null>(
+  const rippingCardRef = useRef<{ card: WordRow; paletteIdx: number } | null>(
     null,
   );
-  const nextCardRef = useRef<{ card: WordEntry; paletteIdx: number } | null>(
+  const nextCardRef = useRef<{ card: WordRow; paletteIdx: number } | null>(
     null,
   );
   // Index to restore after the mastered card is removed & Swiper remounts
@@ -39,8 +45,8 @@ export default function FlashCard() {
 
   // Shuffle client-only to avoid SSR hydration mismatch
   useEffect(() => {
-    setShuffled([...MOCK_WORDS].sort(() => Math.random() - 0.5));
-  }, []);
+    setShuffled([...words].sort(() => Math.random() - 0.5));
+  }, [words]);
 
   // Filter out mastered cards
   const displayWords = shuffled.filter((w) => !mastered.has(w.id));
@@ -51,7 +57,7 @@ export default function FlashCard() {
 
   // Stable palette: keyed off the card's position in the *shuffled* array so
   // mastering a card never shifts any other card's color or illustration.
-  const getPaletteIdx = (card: WordEntry) => {
+  const getPaletteIdx = (card: WordRow) => {
     const i = shuffled.findIndex((w) => w.id === card.id);
     return (i === -1 ? 0 : i) % CARD_PALETTE.length;
   };
@@ -71,11 +77,24 @@ export default function FlashCard() {
   const handleFav = () => {
     if (!currentCard) return;
     const id = currentCard.id;
+    const word = currentCard.word;
+    const adding = !favs.has(id);
     setFavAnimId(id);
     setFavs((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      adding ? next.add(id) : next.delete(id);
       return next;
+    });
+    toggleFavorite(id, adding).then((res) => {
+      if (res.success) {
+        toast[adding ? "success" : "info"](
+          adding
+            ? `"${word}" added to favourites`
+            : `"${word}" removed from favourites`,
+        );
+      } else {
+        toast.error(res.error ?? "Failed to update favourite");
+      }
     });
     setTimeout(() => setFavAnimId(null), 900);
   };
@@ -83,6 +102,7 @@ export default function FlashCard() {
   const handleMaster = () => {
     if (!currentCard || rippingId !== null) return;
     const id = currentCard.id;
+    const word = currentCard.word;
     const idx = displayWords.findIndex((w) => w.id === id);
     rippingCardRef.current = {
       card: currentCard,
@@ -98,6 +118,13 @@ export default function FlashCard() {
       : null;
     masteredTargetIdxRef.current = targetIdx;
     setRippingId(id);
+    toggleMastered(id, true).then((res) => {
+      if (res.success) {
+        toast.success(`"${word}" marked as mastered!`);
+      } else {
+        toast.error(res.error ?? "Failed to mark as mastered");
+      }
+    });
     // No slideNext here — let the rip play fully over the correct card
   };
 
@@ -158,8 +185,8 @@ export default function FlashCard() {
                   <SwiperSlide key={card.id} className="rounded-3xl shadow-2xl">
                     <WordCard
                       word={card.word}
-                      meaning={card.meaning}
-                      example={card.example}
+                      meaning={card.meaning ?? undefined}
+                      example={card.example ?? undefined}
                       bg={palette.bg}
                       text={palette.text}
                       illustrationIndex={pIdx % 5}
@@ -181,8 +208,8 @@ export default function FlashCard() {
                     >
                       <WordCard
                         word={nextCardRef.current.card.word}
-                        meaning={nextCardRef.current.card.meaning}
-                        example={nextCardRef.current.card.example}
+                        meaning={nextCardRef.current.card.meaning ?? undefined}
+                        example={nextCardRef.current.card.example ?? undefined}
                         bg={CARD_PALETTE[nextCardRef.current.paletteIdx].bg}
                         text={CARD_PALETTE[nextCardRef.current.paletteIdx].text}
                         illustrationIndex={nextCardRef.current.paletteIdx % 5}
@@ -210,8 +237,8 @@ export default function FlashCard() {
                   >
                     <WordCard
                       word={rippingCardRef.current.card.word}
-                      meaning={rippingCardRef.current.card.meaning}
-                      example={rippingCardRef.current.card.example}
+                      meaning={rippingCardRef.current.card.meaning ?? undefined}
+                      example={rippingCardRef.current.card.example ?? undefined}
                       bg={CARD_PALETTE[rippingCardRef.current.paletteIdx].bg}
                       text={
                         CARD_PALETTE[rippingCardRef.current.paletteIdx].text
@@ -236,8 +263,8 @@ export default function FlashCard() {
                   >
                     <WordCard
                       word={rippingCardRef.current.card.word}
-                      meaning={rippingCardRef.current.card.meaning}
-                      example={rippingCardRef.current.card.example}
+                      meaning={rippingCardRef.current.card.meaning ?? undefined}
+                      example={rippingCardRef.current.card.example ?? undefined}
                       bg={CARD_PALETTE[rippingCardRef.current.paletteIdx].bg}
                       text={
                         CARD_PALETTE[rippingCardRef.current.paletteIdx].text

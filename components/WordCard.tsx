@@ -312,7 +312,7 @@ function meaningFontSize(text: string): string {
 
 export interface WordCardProps {
   word: string;
-  meaning: string;
+  meaning?: string;
   example?: string;
   bg: string;
   text: string;
@@ -374,7 +374,7 @@ export default function WordCard({
       <div className="relative z-10 flex-1">
         <p
           className="leading-snug opacity-90"
-          style={{ fontSize: meaningFontSize(meaning) }}
+          style={{ fontSize: meaningFontSize(meaning ?? "") }}
         >
           {meaning}
         </p>

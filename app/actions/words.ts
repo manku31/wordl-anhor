@@ -90,3 +90,33 @@ export async function getWords(): Promise<WordRow[]> {
     createdAt: w.createdAt.toISOString(),
   }));
 }
+
+export async function toggleFavorite(
+  wordId: number,
+  value: boolean,
+): Promise<{ success: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { success: false, error: "Not authenticated" };
+
+  await prisma.word.update({
+    where: { wordId, userId: session.userId },
+    data: { isFavorite: value },
+  });
+
+  return { success: true };
+}
+
+export async function toggleMastered(
+  wordId: number,
+  value: boolean,
+): Promise<{ success: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { success: false, error: "Not authenticated" };
+
+  await prisma.word.update({
+    where: { wordId, userId: session.userId },
+    data: { isMastered: value },
+  });
+
+  return { success: true };
+}
