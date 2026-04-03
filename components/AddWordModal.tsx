@@ -1,15 +1,42 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Loader2 } from "lucide-react";
+import { Plus, X, Loader2, CheckCircle2 } from "lucide-react";
 import { addWord } from "@/app/actions/words";
+
+function SuccessToast({
+  message,
+  onDone,
+}: {
+  message: string;
+  onDone: () => void;
+}) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 3000);
+    return () => clearTimeout(t);
+  }, [onDone]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+      className="fixed left-1/2 top-5 z-100 -translate-x-1/2 flex items-center gap-2.5 rounded-xl border border-emerald-500/30 bg-neutral-900 px-4 py-3 shadow-2xl shadow-black/50 text-sm text-emerald-400 backdrop-blur-sm"
+    >
+      <CheckCircle2 className="h-4 w-4 shrink-0" />
+      <span>{message}</span>
+    </motion.div>
+  );
+}
 
 export default function AddWordModal() {
   const [open, setOpen] = useState(false);
   const [word, setWord] = useState("");
   const [details, setDetails] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleClose() {
@@ -31,11 +58,18 @@ export default function AddWordModal() {
       setWord("");
       setDetails("");
       setOpen(false);
+      setToast("Word added successfully!");
     });
   }
 
   return (
     <>
+      {/* Success toast */}
+      <AnimatePresence>
+        {toast && (
+          <SuccessToast message={toast} onDone={() => setToast(null)} />
+        )}
+      </AnimatePresence>
       {/* Floating button */}
       <motion.button
         onClick={() => setOpen(true)}
