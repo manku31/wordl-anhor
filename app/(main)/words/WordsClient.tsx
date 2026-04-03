@@ -13,6 +13,13 @@ import {
 } from "lucide-react";
 import WordCard, { CARD_PALETTE, ILLUSTRATIONS } from "@/components/WordCard";
 import type { WordRow } from "@/app/actions/words";
+import {
+  toggleFavorite,
+  toggleMastered,
+  deleteWord,
+} from "@/app/actions/words";
+import { toast } from "sonner";
+import AddWordModal, { type EditTarget } from "@/components/AddWordModal";
 
 type Filter = "all" | "latest" | "oldest" | "favorites" | "mastered";
 
@@ -42,6 +49,7 @@ export default function WordsClient({
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
 
   // Local fav / mastered state seeded from DB values
   const [favs, setFavs] = useState<Set<number>>(
@@ -53,19 +61,67 @@ export default function WordsClient({
 
   const toggleFav = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
+    const adding = !favs.has(id);
+    const word = initialWords.find((w) => w.id === id)?.word ?? "Word";
     setFavs((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      adding ? next.add(id) : next.delete(id);
       return next;
+    });
+    toggleFavorite(id, adding).then((res) => {
+      if (res.success) {
+        toast[adding ? "success" : "info"](
+          adding
+            ? `"${word}" added to favourites`
+            : `"${word}" removed from favourites`,
+        );
+      } else {
+        toast.error(res.error ?? "Failed to update favourite");
+        setFavs((prev) => {
+          const next = new Set(prev);
+          adding ? next.delete(id) : next.add(id);
+          return next;
+        });
+      }
     });
   };
 
   const toggleDone = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
+    const adding = !dones.has(id);
+    const word = initialWords.find((w) => w.id === id)?.word ?? "Word";
     setDones((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      adding ? next.add(id) : next.delete(id);
       return next;
+    });
+    toggleMastered(id, adding).then((res) => {
+      if (res.success) {
+        toast[adding ? "success" : "info"](
+          adding
+            ? `"${word}" marked as mastered!`
+            : `"${word}" unmarked as mastered`,
+        );
+      } else {
+        toast.error(res.error ?? "Failed to update mastered");
+        setDones((prev) => {
+          const next = new Set(prev);
+          adding ? next.delete(id) : next.add(id);
+          return next;
+        });
+      }
+    });
+  };
+
+  const handleDelete = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedId(null);
+    deleteWord(id).then((res) => {
+      if (res.success) {
+        toast.success("Word deleted");
+      } else {
+        toast.error(res.error ?? "Failed to delete word");
+      }
     });
   };
 
@@ -337,6 +393,12 @@ export default function WordsClient({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      setSelectedId(null);
+                      setEditTarget({
+                        id: selectedId,
+                        word: selectedWord.word,
+                        details: selectedWord.details,
+                      });
                     }}
                     className="h-9 w-9 flex items-center justify-center rounded-2xl bg-neutral-800 border border-neutral-700 text-neutral-400 hover:text-neutral-100 hover:bg-neutral-700 transition-colors"
                     title="Edit word"
@@ -346,9 +408,7 @@ export default function WordsClient({
 
                   {/* Delete */}
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
+                    onClick={(e) => handleDelete(selectedId, e)}
                     className="h-9 w-9 flex items-center justify-center rounded-2xl bg-neutral-800 border border-neutral-700 text-neutral-400 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition-colors"
                     title="Delete word"
                   >
@@ -360,6 +420,12 @@ export default function WordsClient({
           </>
         )}
       </AnimatePresence>
+
+      {/* Edit modal — opens when a word's edit button is clicked */}
+      <AddWordModal
+        editTarget={editTarget}
+        onEditClose={() => setEditTarget(null)}
+      />
     </main>
   );
 }

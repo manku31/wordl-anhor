@@ -3,7 +3,8 @@
 import { useState, useTransition, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X, Loader2, CheckCircle2 } from "lucide-react";
-import { addWord } from "@/app/actions/words";
+import { addWord, updateWord } from "@/app/actions/words";
+import { toast as sonnerToast } from "sonner";
 
 function SuccessToast({
   message,
@@ -31,7 +32,24 @@ function SuccessToast({
   );
 }
 
-export default function AddWordModal() {
+export type EditTarget = {
+  id: number;
+  word: string;
+  details: string | null;
+};
+
+interface AddWordModalProps {
+  /** When provided the modal opens in edit mode (no floating + button) */
+  editTarget?: EditTarget | null;
+  onEditClose?: () => void;
+}
+
+export default function AddWordModal({
+  editTarget,
+  onEditClose,
+}: AddWordModalProps = {}) {
+  const isEditMode = editTarget != null;
+
   const [open, setOpen] = useState(false);
   const [word, setWord] = useState("");
   const [details, setDetails] = useState("");
@@ -39,9 +57,26 @@ export default function AddWordModal() {
   const [toast, setToast] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // Pre-fill fields whenever a new edit target arrives
+  useEffect(() => {
+    if (editTarget) {
+      setWord(editTarget.word);
+      setDetails(editTarget.details ?? "");
+      setError(null);
+    }
+  }, [editTarget]);
+
+  const isOpen = isEditMode || open;
+
   function handleClose() {
     if (isPending) return;
-    setOpen(false);
+    if (isEditMode) {
+      onEditClose?.();
+    } else {
+      setOpen(false);
+      setWord("");
+      setDetails("");
+    }
     setError(null);
   }
 
@@ -49,17 +84,41 @@ export default function AddWordModal() {
     if (!word.trim() || isPending) return;
     setError(null);
 
-    startTransition(async () => {
-      const result = await addWord(word, details);
-      if (result?.success === false) {
-        setError(result.error);
+    if (isEditMode && editTarget) {
+      // Frontend no-change check — skip API call entirely if nothing changed
+      const trimmedWord = word.trim();
+      const trimmedDetails = details.trim();
+      const origWord = editTarget.word.trim();
+      const origDetails = (editTarget.details ?? "").trim();
+
+      if (trimmedWord === origWord && trimmedDetails === origDetails) {
+        sonnerToast.info("No changes made — everything looks the same!");
+        onEditClose?.();
         return;
       }
-      setWord("");
-      setDetails("");
-      setOpen(false);
-      setToast("Word added successfully!");
-    });
+
+      startTransition(async () => {
+        const result = await updateWord(editTarget.id, word, details);
+        if (!result || result.success === false) {
+          setError(result?.error ?? "Failed to update word");
+          return;
+        }
+        onEditClose?.();
+        setToast("Word updated successfully!");
+      });
+    } else {
+      startTransition(async () => {
+        const result = await addWord(word, details);
+        if (result?.success === false) {
+          setError(result.error);
+          return;
+        }
+        setWord("");
+        setDetails("");
+        setOpen(false);
+        setToast("Word added successfully!");
+      });
+    }
   }
 
   return (
@@ -70,20 +129,23 @@ export default function AddWordModal() {
           <SuccessToast message={toast} onDone={() => setToast(null)} />
         )}
       </AnimatePresence>
-      {/* Floating button */}
-      <motion.button
-        onClick={() => setOpen(true)}
-        whileHover={{ scale: 1.08 }}
-        whileTap={{ scale: 0.94 }}
-        className="fixed bottom-8 right-8 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-white text-black shadow-2xl shadow-black/40 transition-colors hover:bg-neutral-100"
-        aria-label="Add word"
-      >
-        <Plus className="h-6 w-6" strokeWidth={2.5} />
-      </motion.button>
+
+      {/* Floating + button — only rendered in add mode */}
+      {!isEditMode && (
+        <motion.button
+          onClick={() => setOpen(true)}
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.94 }}
+          className="fixed bottom-8 right-8 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-white text-black shadow-2xl shadow-black/40 transition-colors hover:bg-neutral-100"
+          aria-label="Add word"
+        >
+          <Plus className="h-6 w-6" strokeWidth={2.5} />
+        </motion.button>
+      )}
 
       {/* Modal */}
       <AnimatePresence>
-        {open && (
+        {isOpen && (
           <>
             {/* Backdrop */}
             <motion.div
@@ -107,7 +169,9 @@ export default function AddWordModal() {
             >
               {/* Header */}
               <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-white">Add Word</h2>
+                <h2 className="text-lg font-semibold text-white">
+                  {isEditMode ? "Edit Word" : "Add Word"}
+                </h2>
                 <button
                   onClick={handleClose}
                   className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-white/10 hover:text-white"
@@ -182,6 +246,8 @@ export default function AddWordModal() {
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       Saving
                     </>
+                  ) : isEditMode ? (
+                    "Update"
                   ) : (
                     "Save"
                   )}

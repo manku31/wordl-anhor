@@ -120,3 +120,64 @@ export async function toggleMastered(
 
   return { success: true };
 }
+
+export type UpdateWordState =
+  | { success: true; changed: boolean }
+  | { success: false; error: string }
+  | undefined;
+
+export async function updateWord(
+  wordId: number,
+  word: string,
+  details?: string,
+): Promise<UpdateWordState> {
+  const session = await getSession();
+  if (!session) return { success: false, error: "Not authenticated" };
+
+  const parsed = AddWordSchema.safeParse({
+    word: word.trim(),
+    details: details?.trim() || undefined,
+  });
+
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
+  }
+
+  // Server-side no-change check — avoids a pointless DB write
+  const existing = await prisma.word.findUnique({
+    where: { wordId, userId: session.userId },
+    select: { word: true, details: true },
+  });
+
+  if (!existing) return { success: false, error: "Word not found" };
+
+  const newWord = parsed.data.word;
+  const newDetails = parsed.data.details ?? null;
+
+  if (existing.word === newWord && existing.details === newDetails) {
+    return { success: true, changed: false };
+  }
+
+  await prisma.word.update({
+    where: { wordId, userId: session.userId },
+    data: { word: newWord, details: newDetails },
+  });
+
+  revalidatePath("/words");
+  return { success: true, changed: true };
+}
+
+export async function deleteWord(
+  wordId: number,
+): Promise<{ success: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { success: false, error: "Not authenticated" };
+
+  await prisma.word.update({
+    where: { wordId, userId: session.userId },
+    data: { isDeleted: true },
+  });
+
+  revalidatePath("/words");
+  return { success: true };
+}
