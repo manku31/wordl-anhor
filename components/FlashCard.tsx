@@ -194,14 +194,14 @@ export default function FlashCard({ words }: { words: WordRow[] }) {
       `}</style>
 
       {displayWords.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 h-[500px] md:h-[520px] justify-center text-neutral-500">
+        <div className="flex flex-col items-center gap-3 h-125 md:h-130 justify-center text-neutral-500">
           <CheckCircle2Icon className="h-10 w-10 opacity-30" />
           <p className="text-sm">All words mastered!</p>
         </div>
       ) : (
         <>
           {/* Wrapper keeps rip pieces positioned relative to the card */}
-          <div className="relative w-[280px] h-[500px] md:w-[380px] md:h-[520px]">
+          <div className="relative w-70 h-125 md:w-95 md:h-130">
             <Swiper
               key={mastered.size}
               effect="cards"
