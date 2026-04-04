@@ -92,16 +92,27 @@ export async function getWords(): Promise<WordRow[]> {
     },
   });
 
-  return words.map((w) => ({
-    id: w.wordId,
-    word: w.word,
-    details: w.details,
-    meaning: w.meaning,
-    example: w.example,
-    isFavorite: w.isFavorite,
-    isMastered: w.isMastered,
-    createdAt: w.createdAt.toISOString(),
-  }));
+  return words.map(
+    (w: {
+      wordId: number;
+      word: string;
+      details: string | null;
+      meaning: string | null;
+      example: string | null;
+      isFavorite: boolean;
+      isMastered: boolean;
+      createdAt: Date;
+    }) => ({
+      id: w.wordId,
+      word: w.word,
+      details: w.details,
+      meaning: w.meaning,
+      example: w.example,
+      isFavorite: w.isFavorite,
+      isMastered: w.isMastered,
+      createdAt: w.createdAt.toISOString(),
+    }),
+  );
 }
 
 export async function toggleFavorite(
