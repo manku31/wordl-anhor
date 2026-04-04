@@ -127,4 +127,17 @@
   html {
     @apply font-sans;
   }
+  button,
+  [role="button"],
+  a,
+  label[for],
+  select,
+  summary,
+  [type="button"],
+  [type="submit"],
+  [type="reset"],
+  [type="checkbox"],
+  [type="radio"] {
+    cursor: pointer;
+  }
 }

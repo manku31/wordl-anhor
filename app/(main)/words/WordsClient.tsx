@@ -9,6 +9,7 @@ import {
   SearchIcon,
   StarIcon,
   Trash2Icon,
+  Volume2Icon,
   XIcon,
 } from "lucide-react";
 import WordCard, { CARD_PALETTE, ILLUSTRATIONS } from "@/components/WordCard";
@@ -111,6 +112,44 @@ export default function WordsClient({
         });
       }
     });
+  };
+
+  const speakWord = (word: string) => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(word);
+    utt.lang = "en-US";
+    utt.rate = 0.88;
+    utt.pitch = 1.0;
+    const pickVoice = () => {
+      const voices = window.speechSynthesis.getVoices();
+      const priority = [
+        (v: SpeechSynthesisVoice) => v.name === "Google US English",
+        (v: SpeechSynthesisVoice) => v.name === "Samantha",
+        (v: SpeechSynthesisVoice) => v.name === "Daniel",
+        (v: SpeechSynthesisVoice) =>
+          v.lang.startsWith("en") && !v.name.includes("Microsoft"),
+        (v: SpeechSynthesisVoice) => v.lang.startsWith("en"),
+      ];
+      for (const test of priority) {
+        const match = voices.find(test);
+        if (match) return match;
+      }
+      return null;
+    };
+    const voice = pickVoice();
+    if (voice) {
+      utt.voice = voice;
+      window.speechSynthesis.speak(utt);
+    } else {
+      // Voices not yet loaded — wait for them
+      window.speechSynthesis.onvoiceschanged = () => {
+        const v = pickVoice();
+        if (v) utt.voice = v;
+        window.speechSynthesis.speak(utt);
+        window.speechSynthesis.onvoiceschanged = null;
+      };
+    }
   };
 
   const handleDelete = (id: number, e: React.MouseEvent) => {
@@ -336,6 +375,15 @@ export default function WordsClient({
                   transition={{ duration: 0.12 }}
                   className="flex flex-col justify-center gap-2.5"
                 >
+                  {/* Speak */}
+                  <button
+                    onClick={() => speakWord(selectedWord.word)}
+                    className="h-9 w-9 flex items-center justify-center rounded-2xl bg-neutral-800 border border-neutral-700 text-neutral-400 hover:text-sky-300 hover:bg-sky-400/10 hover:border-sky-500/30 transition-colors"
+                    title="Pronounce word"
+                  >
+                    <Volume2Icon className="h-4 w-4" />
+                  </button>
+
                   {/* Close */}
                   <button
                     onClick={() => setSelectedId(null)}

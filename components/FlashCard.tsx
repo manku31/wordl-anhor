@@ -7,7 +7,7 @@ import { EffectCards } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css/effect-cards";
 import "swiper/css";
-import { CheckCircle2Icon, StarIcon } from "lucide-react";
+import { CheckCircle2Icon, StarIcon, Volume2Icon } from "lucide-react";
 import { toast } from "sonner";
 import WordCard, { CARD_PALETTE } from "@/components/WordCard";
 import type { WordRow } from "@/app/actions/words";
@@ -99,6 +99,44 @@ export default function FlashCard({ words }: { words: WordRow[] }) {
     setTimeout(() => setFavAnimId(null), 900);
   };
 
+  const speakWord = (word: string) => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(word);
+    utt.lang = "en-US";
+    utt.rate = 0.88;
+    utt.pitch = 1.0;
+    const pickVoice = () => {
+      const voices = window.speechSynthesis.getVoices();
+      const priority = [
+        (v: SpeechSynthesisVoice) => v.name === "Google US English",
+        (v: SpeechSynthesisVoice) => v.name === "Samantha",
+        (v: SpeechSynthesisVoice) => v.name === "Daniel",
+        (v: SpeechSynthesisVoice) =>
+          v.lang.startsWith("en") && !v.name.includes("Microsoft"),
+        (v: SpeechSynthesisVoice) => v.lang.startsWith("en"),
+      ];
+      for (const test of priority) {
+        const match = voices.find(test);
+        if (match) return match;
+      }
+      return null;
+    };
+    const voice = pickVoice();
+    if (voice) {
+      utt.voice = voice;
+      window.speechSynthesis.speak(utt);
+    } else {
+      // Voices not yet loaded — wait for them
+      window.speechSynthesis.onvoiceschanged = () => {
+        const v = pickVoice();
+        if (v) utt.voice = v;
+        window.speechSynthesis.speak(utt);
+        window.speechSynthesis.onvoiceschanged = null;
+      };
+    }
+  };
+
   const handleMaster = () => {
     if (!currentCard || rippingId !== null) return;
     const id = currentCard.id;
@@ -156,14 +194,14 @@ export default function FlashCard({ words }: { words: WordRow[] }) {
       `}</style>
 
       {displayWords.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 h-[400px] md:h-[520px] justify-center text-neutral-500">
+        <div className="flex flex-col items-center gap-3 h-[500px] md:h-[520px] justify-center text-neutral-500">
           <CheckCircle2Icon className="h-10 w-10 opacity-30" />
           <p className="text-sm">All words mastered!</p>
         </div>
       ) : (
         <>
           {/* Wrapper keeps rip pieces positioned relative to the card */}
-          <div className="relative w-[280px] h-[400px] md:w-[380px] md:h-[520px]">
+          <div className="relative w-[280px] h-[500px] md:w-[380px] md:h-[520px]">
             <Swiper
               key={mastered.size}
               effect="cards"
@@ -280,6 +318,24 @@ export default function FlashCard({ words }: { words: WordRow[] }) {
           {/* Action buttons — below the deck so cards never cover them */}
           {currentCard && (
             <div className="flex items-center gap-3">
+              {/* Speak */}
+              <div className="relative group">
+                <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-neutral-800 border border-neutral-700 px-2 py-0.5 text-xs text-neutral-300 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
+                  Pronounce word
+                </span>
+                <button
+                  onClick={() => {
+                    // Read realIndex directly from Swiper ref to avoid stale-closure issues
+                    const idx = swiperRef.current?.realIndex ?? activeRealIdx;
+                    const card =
+                      displayWords[idx % Math.max(1, displayWords.length)];
+                    if (card) speakWord(card.word);
+                  }}
+                  className="h-9 w-9 flex items-center justify-center rounded-2xl bg-neutral-800 border border-neutral-700 text-neutral-400 hover:text-sky-300 hover:bg-sky-400/10 hover:border-sky-500/30 transition-colors"
+                >
+                  <Volume2Icon className="h-4 w-4" />
+                </button>
+              </div>
               {/* Favorite */}
               <div className="relative group">
                 {/* Tooltip */}
