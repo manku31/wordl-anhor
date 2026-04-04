@@ -244,7 +244,7 @@ export default function AddWordModal({
                   {isPending ? (
                     <>
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Saving
+                      {isEditMode ? "Saving…" : "Getting meaning…"}
                     </>
                   ) : isEditMode ? (
                     "Update"

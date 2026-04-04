@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/app/lib/session";
+import { getWordDefinition } from "@/lib/openai";
 
 const AddWordSchema = z.object({
   word: z
@@ -45,7 +46,19 @@ export async function addWord(
     },
   });
 
-  // revalidatePath("/words");
+  // Enrich with AI-generated meaning + example (best-effort, non-blocking)
+  const definition = await getWordDefinition(
+    parsed.data.word,
+    parsed.data.details,
+  );
+  if (definition) {
+    await prisma.word.update({
+      where: { wordId: created.wordId },
+      data: { meaning: definition.meaning, example: definition.example },
+    });
+  }
+
+  revalidatePath("/words");
   return { success: true, wordId: created.wordId };
 }
 
@@ -158,9 +171,20 @@ export async function updateWord(
     return { success: true, changed: false };
   }
 
+  const wordTextChanged = existing.word !== newWord;
+
+  // Re-generate meaning/example only when the word itself changes
+  let aiUpdate: { meaning?: string; example?: string } = {};
+  if (wordTextChanged) {
+    const definition = await getWordDefinition(newWord, newDetails);
+    if (definition) {
+      aiUpdate = { meaning: definition.meaning, example: definition.example };
+    }
+  }
+
   await prisma.word.update({
     where: { wordId, userId: session.userId },
-    data: { word: newWord, details: newDetails },
+    data: { word: newWord, details: newDetails, ...aiUpdate },
   });
 
   revalidatePath("/words");
