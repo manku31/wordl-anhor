@@ -175,7 +175,7 @@ export default function FlashCard({ words }: { words: WordRow[] }) {
               onSwiper={(s) => {
                 swiperRef.current = s;
               }}
-              onRealIndexChange={(s) => setActiveRealIdx(s.realIndex)}
+              onSlideChangeTransitionEnd={(s) => setActiveRealIdx(s.realIndex)}
               className="h-full w-full"
             >
               {displayWords.map((card) => {

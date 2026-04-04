@@ -5,7 +5,6 @@ import {
   AnchorIcon,
   LogOutIcon,
   MenuIcon,
-  SearchIcon,
   UserIcon,
   XIcon,
 } from "lucide-react";
@@ -26,7 +25,6 @@ export default function NavBar({ username }: { username?: string | null }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [query, setQuery] = useState("");
 
   function handleLogout() {
     startTransition(() => {
@@ -98,18 +96,6 @@ export default function NavBar({ username }: { username?: string | null }) {
               );
             })}
           </nav>
-
-          {/* Desktop Search */}
-          <div className="hidden md:flex items-center relative">
-            <SearchIcon className="absolute left-3 h-3.5 w-3.5 text-neutral-500 pointer-events-none" />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search your word"
-              className="w-48 rounded-lg bg-neutral-900 border border-neutral-800 pl-8 pr-3 py-1.5 text-sm text-neutral-200 placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-600 transition-all focus:w-64"
-            />
-          </div>
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
@@ -190,19 +176,7 @@ export default function NavBar({ username }: { username?: string | null }) {
                   </Link>
                 );
               })}
-              {/* Mobile Search */}
-              <div className="relative mt-1">
-                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-500 pointer-events-none" />
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search your word"
-                  className="w-full rounded-lg bg-neutral-900 border border-neutral-800 pl-8 pr-3 py-2 text-sm text-neutral-200 placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-600"
-                />
-              </div>
-
-              <div className="mt-3 flex flex-col gap-2 border-t border-neutral-800 pt-3">
+              <div className="mt-1 flex flex-col gap-2 border-t border-neutral-800 pt-3">
                 {username ? (
                   <>
                     <span className="flex items-center gap-2 px-4 py-2 text-sm text-neutral-400">

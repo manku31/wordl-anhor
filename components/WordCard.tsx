@@ -302,10 +302,10 @@ export const CARD_PALETTE = [
 
 function meaningFontSize(text: string): string {
   const len = text.length;
-  if (len > 120) return "0.65rem";
-  if (len > 80) return "0.72rem";
-  if (len > 50) return "0.78rem";
-  return "0.85rem";
+  if (len > 120) return "1.15rem";
+  if (len > 80) return "1.25rem";
+  if (len > 50) return "1.35rem";
+  return "1.45rem";
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -357,7 +357,7 @@ export default function WordCard({
           className="font-bold leading-tight"
           style={{
             fontFamily: "var(--font-dancing-script), cursive",
-            fontSize: "clamp(1.6rem, 6vw, 2rem)",
+            fontSize: "clamp(2rem, 7vw, 2.6rem)",
           }}
         >
           {word}
@@ -382,10 +382,10 @@ export default function WordCard({
 
       {/* Example */}
       {example && (
-        <div className="relative z-10 mt-2 pt-2 border-t border-current/20">
+        <div className="relative z-10 mt-2 pt-3 border-t border-current/20">
           <p
-            className="italic leading-snug opacity-60 line-clamp-3"
-            style={{ fontSize: "0.65rem" }}
+            className="italic leading-relaxed opacity-60 line-clamp-4"
+            style={{ fontSize: "1.1rem" }}
           >
             e.g. {example}
           </p>
